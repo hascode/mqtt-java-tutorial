@@ -22,15 +22,32 @@ public class Main {
 	static class PublisherListener extends AbstractInterceptHandler {
 		@Override
 		public void onPublish(InterceptPublishMessage message) {
-			System.out.println("moquette mqtt broker message intercepted, topic: " + message.getTopicName() + ", content: "
-					+ new String(message.getPayload().array()));
+			System.out.println("moquette mqtt broker message intercepted, topic: " + message.getTopicName()
+					+ ", content: " + new String(message.getPayload().array()));
 		}
 	}
 
 	public static void main(String[] args) throws InterruptedException, IOException {
 		// Creating a MQTT Broker using Moquette
-		createMoquetteMQTTBroker();
+		final IConfig classPathConfig = new ClasspathConfig();
 
+		final Server mqttBroker = new Server();
+		final List<? extends InterceptHandler> userHandlers = Arrays.asList(new PublisherListener());
+		mqttBroker.startServer(classPathConfig, userHandlers);
+
+		System.out.println("moquette mqtt broker started, press ctrl-c to shutdown..");
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				System.out.println("stopping moquette mqtt broker..");
+				mqttBroker.stopServer();
+				System.out.println("moquette mqtt broker stopped");
+			}
+		});
+
+		Thread.sleep(4000);
+
+		// Creating a MQTT Client using Eclipse Paho
 		String topic = "news";
 		String content = "Visit www.hascode.com! :D";
 		int qos = 2;
@@ -55,25 +72,4 @@ public class Main {
 			me.printStackTrace();
 		}
 	}
-
-	private static void createMoquetteMQTTBroker() throws IOException, InterruptedException {
-		final IConfig classPathConfig = new ClasspathConfig();
-
-		final Server mqttBroker = new Server();
-		final List<? extends InterceptHandler> userHandlers = Arrays.asList(new PublisherListener());
-		mqttBroker.startServer(classPathConfig, userHandlers);
-
-		System.out.println("moquette mqtt broker started, press ctrl-c to shutdown..");
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				System.out.println("stopping moquette mqtt broker..");
-				mqttBroker.stopServer();
-				System.out.println("moquette mqtt broker stopped");
-			}
-		});
-
-		Thread.sleep(4000);
-	}
-
 }
